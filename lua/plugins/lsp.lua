@@ -1,61 +1,64 @@
-local lspconfig = require("lspconfig")
-local mason = require("mason")
-local mason_lspconfig = require("mason-lspconfig")
+-- lua/plugins/lsp.lua
+local lspconfig = require('lspconfig')
+local mason = require('mason')
+local mason_lspconfig = require('mason-lspconfig')
 
--- Mason kurulum
 mason.setup()
+
 mason_lspconfig.setup({
-	ensure_installed = {
-		"lua_ls",
-		"ts_ls", -- typescript-language-server
-		"pyright",
-	},
-	automatic_installation = true,
+  ensure_installed = { 'ts_ls', 'lua_ls', 'pyright', 'eslint', 'jsonls' },
+  automatic_installation = true,
 })
 
--- LSP özellikleri
-local on_attach = function(_, bufnr)
-	local bufmap = function(mode, lhs, rhs)
-		vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, silent = true })
-	end
+local capabilities = require('cmp_nvim_lsp').default_capabilities()
 
-	bufmap("n", "gd", vim.lsp.buf.definition)
-	bufmap("n", "gr", vim.lsp.buf.references)
-	bufmap("n", "K", vim.lsp.buf.hover)
-	bufmap("n", "<leader>rn", vim.lsp.buf.rename)
-	bufmap("n", "<leader>ca", vim.lsp.buf.code_action)
-	bufmap("n", "<leader>f", function()
-		vim.lsp.buf.format({ async = true })
-	end)
+local function on_attach(_, bufnr)
+  local map = function(mode, lhs, rhs, desc)
+    vim.keymap.set(mode, lhs, rhs, { buffer = bufnr, silent = true, desc = desc })
+  end
+  map('n', 'gd', vim.lsp.buf.definition, 'Go to definition')
+  map('n', 'gr', vim.lsp.buf.references, 'List references')
+  map('n', 'K', vim.lsp.buf.hover, 'Hover info')
+  map('n', '<leader>rn', vim.lsp.buf.rename, 'Rename symbol')
+  map('n', '<leader>ca', vim.lsp.buf.code_action, 'Code action')
+  map('n', '<leader>f', function() vim.lsp.buf.format({ async = true }) end, 'Format')
 end
 
-local capabilities = require("cmp_nvim_lsp").default_capabilities()
-
--- TypeScript
+-- TypeScript / JavaScript
 lspconfig.ts_ls.setup({
-	on_attach = on_attach,
-	capabilities = capabilities,
-	settings = {
-		javascript = {
-			suggest = { autoImports = true },
-		},
-		typescript = {
-			suggest = { autoImports = true },
-			inlayHints = { includeInlayParameterNameHints = "all" },
-		},
-	},
+  capabilities = capabilities,
+  on_attach = on_attach,
+  settings = {
+    javascript = { suggest = { autoImports = true } },
+    typescript = { suggest = { autoImports = true }, inlayHints = { includeInlayParameterNameHints = 'all' } },
+  },
 })
 
--- Lua (Neovim)
+-- Lua
 lspconfig.lua_ls.setup({
-	on_attach = on_attach,
-	capabilities = capabilities,
-	settings = {
-		Lua = {
-			runtime = { version = "LuaJIT" },
-			diagnostics = { globals = { "vim" } },
-			workspace = { library = vim.api.nvim_get_runtime_file("", true) },
-			telemetry = { enable = false },
-		},
-	},
+  capabilities = capabilities,
+  on_attach = on_attach,
+  settings = {
+    Lua = {
+      runtime = { version = 'LuaJIT' },
+      diagnostics = { globals = { 'vim' } },
+      workspace = { checkThirdParty = false, library = vim.api.nvim_get_runtime_file('', true) },
+      telemetry = { enable = false },
+    },
+  },
+})
+
+-- Python
+lspconfig.pyright.setup({
+  capabilities = capabilities,
+  on_attach = on_attach,
+})
+
+-- ESLint
+lspconfig.eslint.setup({
+  capabilities = capabilities,
+  on_attach = function(client, bufnr)
+    on_attach(client, bufnr)
+    vim.api.nvim_create_autocmd('BufWritePre', { buffer = bufnr, command = 'EslintFixAll' })
+  end,
 })
