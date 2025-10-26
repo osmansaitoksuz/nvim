@@ -1,0 +1,129 @@
+-- -- lua/core/keymap_helper.lua
+-- -- Tuş atamalarını listeleyen yardımcı modül
+--
+-- local M = {}
+--
+-- --- Tuşları "insan tarafından okunabilir" formata çevirir.
+-- -- Örn: "<C-h>" -> "CTRL + h"
+-- -- Örn: "<leader>ff" -> "Leader ff"
+-- local function humanize_key(key_str)
+-- 	if not key_str or key_str == "" then
+-- 		return ""
+-- 	end
+--
+-- 	local s = key_str
+-- 	s = s:gsub("<leader>", "Leader ")
+-- 	s = s:gsub("<C-", "CTRL + ")
+-- 	s = s:gsub("<S-", "SHIFT + ")
+-- 	s = s:gsub("<A-", "ALT + ")
+-- 	s = s:gsub("<D-", "CMD + ")
+-- 	s = s:gsub("<CR>", "ENTER")
+-- 	s = s:gsub("<Esc>", "ESC")
+-- 	s = s:gsub("<Tab>", "TAB")
+-- 	s = s:gsub("<Space>", "SPACE")
+-- 	s = s:gsub(">", "") -- Kalan > karakterlerini temizle
+-- 	return s
+-- end
+--
+-- --- Tuş atamalarını gösteren kayan pencereyi açar.
+-- function M.show_keymaps()
+-- 	local modes = {
+-- 		n = "Normal",
+-- 		v = "Visual",
+-- 		i = "Insert",
+-- 		t = "Terminal",
+-- 	}
+-- 	local all_maps = {}
+-- 	local max_key_len = 0
+-- 	local max_line_len = 0
+--
+-- 	-- 1. Tüm modlardaki tuş atamalarını topla (sadece 'desc' olanları)
+-- 	for mode_key, mode_name in pairs(modes) do
+-- 		local maps = vim.api.nvim_get_keymap(mode_key)
+-- 		local mode_maps = {}
+-- 		for _, map in ipairs(maps) do
+-- 			-- Sadece 'desc' (açıklama) içeren atamaları al
+-- 			if map.desc and map.desc ~= "" then
+-- 				local key = humanize_key(map.lhs)
+-- 				local line_len = #key + 3 + #map.desc
+--
+-- 				if #key > max_key_len then
+-- 					max_key_len = #key
+-- 				end
+-- 				if line_len > max_line_len then
+-- 					max_line_len = line_len
+-- 				end
+--
+-- 				table.insert(mode_maps, { key = key, desc = map.desc })
+-- 			end
+-- 		end
+--
+-- 		if #mode_maps > 0 then
+-- 			-- Tuşlara göre alfabetik sırala
+-- 			table.sort(mode_maps, function(a, b)
+-- 				return a.key < b.key
+-- 			end)
+-- 			all_maps[mode_name] = mode_maps
+-- 		end
+-- 	end
+--
+-- 	-- 2. Buffer için satırları hazırla
+-- 	local lines = { " 🔑 Tuş Atamaları", "====================", "" }
+-- 	local mode_order = { "Normal", "Visual", "Insert", "Terminal" }
+--
+-- 	for _, mode_name in ipairs(mode_order) do
+-- 		local maps = all_maps[mode_name]
+-- 		if maps and #maps > 0 then
+-- 			table.insert(lines, "--- " .. mode_name .. " ---")
+-- 			table.insert(lines, "")
+-- 			for _, map in ipairs(maps) do
+-- 				-- Tuşları hizalamak için dolgu (padding) ekle
+-- 				local padding = string.rep(" ", max_key_len - #map.key)
+-- 				local line = string.format("  %s%s : %s", map.key, padding, map.desc)
+-- 				table.insert(lines, line)
+-- 			end
+-- 			table.insert(lines, "")
+-- 		end
+-- 	end
+--
+-- 	if #lines <= 3 then
+-- 		vim.notify("Açıklamalı (desc) tuş ataması bulunamadı.", vim.log.levels.WARN)
+-- 		return
+-- 	end
+--
+-- 	-- 3. Kayan pencere için buffer oluştur
+-- 	local buf = vim.api.nvim_create_buf(false, true)
+-- 	vim.api.nvim_buf_set_option(buf, "bufhidden", "wipe")
+-- 	vim.api.nvim_buf_set_option(buf, "filetype", "markdown")
+-- 	vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+-- 	vim.api.nvim_buf_set_option(buf, "modifiable", false)
+--
+-- 	-- 4. Pencere boyutlarını hesapla
+-- 	local screen_width = vim.o.columns
+-- 	local screen_height = vim.o.lines
+--
+-- 	local width = math.min(max_line_len + 4, screen_width - 4)
+-- 	local height = math.min(#lines + 2, screen_height - 4)
+--
+-- 	local row = math.floor((screen_height - height) / 2)
+-- 	local col = math.floor((screen_width - width) / 2)
+--
+-- 	-- 5. Kayan pencereyi aç
+-- 	local win = vim.api.nvim_open_win(buf, true, {
+-- 		relative = "editor",
+-- 		width = width,
+-- 		height = height,
+-- 		row = row,
+-- 		col = col,
+-- 		style = "minimal",
+-- 		border = "rounded",
+-- 		title = "Yardım (Kapatmak için 'q' veya '?' basın)",
+-- 		title_pos = "center",
+-- 	})
+--
+-- 	-- 6. Yardım penceresini kapatmak için 'q' veya '?' tuşlarını ata
+-- 	vim.keymap.set("n", "q", "<cmd>close<CR>", { buffer = buf, silent = true, nowait = true })
+-- 	vim.keymap.set("n", "?", "<cmd>close<CR>", { buffer = buf, silent = true, nowait = true })
+-- end
+--
+-- return M
